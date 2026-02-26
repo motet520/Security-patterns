@@ -1,0 +1,29 @@
+# 패턴 전용 저장소 .gitignore
+
+# 백업 파일
+*.backup
+*.bak
+
+# 임시 파일
+*.tmp
+*.temp
+~*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 테스트 출력
+test_output/
+*.log

@@ -1,0 +1,477 @@
+{
+  "javascript": {
+    "sql_injection": [
+      {
+        "pattern": "\\b(?:query|execute|raw)(?:\\s*\\.\\s*(?:query|execute|raw))?\\s*\\(\\s*(?:(?:['\"`](?:[^'\"`\\\\]|\\\\.)*['\"`]|[a-zA-Z_$][a-zA-Z0-9_$]*(?:\\.[a-zA-Z_$][a-zA-Z0-9_$]*)*)\\s*\\+\\s*(?:['\"`](?:[^'\"`\\\\]|\\\\.)*['\"`]|[a-zA-Z_$][a-zA-Z0-9_$]*(?:\\.[a-zA-Z_$][a-zA-Z0-9_$]*)*))(?:\\s*\\+\\s*(?:['\"`](?:[^'\"`\\\\]|\\\\.)*['\"`]|[a-zA-Z_$][a-zA-Z0-9_$]*(?:\\.[a-zA-Z_$][a-zA-Z0-9_$]*)*))*\\s*\\)",
+        "severity": "CRITICAL",
+        "title": "SQL Query built with String Concatenation",
+        "description": "Detects SQL query methods (like `query`, `execute`, `raw`) where the SQL string is constructed using string concatenation of string literals and/or variables. This is a common pattern for SQL injection if any of the concatenated variables are untrusted user input."
+      },
+      {
+        "pattern": "\\b(?:query|execute|raw)(?:\\s*\\.\\s*(?:query|execute|raw))?\\s*\\(\\s*`[^`]*\\$\\{([a-zA-Z_$][a-zA-Z0-9_$]*(?:\\.[a-zA-Z_$][a-zA-Z0-9_$]*)*|[\\w.]+)\\}[^`]*`\\s*\\)",
+        "severity": "CRITICAL",
+        "title": "SQL Query built with Template Literals",
+        "description": "Detects SQL query methods (like `query`, `execute`, `raw`) where the SQL string is constructed using a template literal that embeds a variable expression. This is a common pattern for SQL injection if the embedded variable is untrusted user input and not properly escaped."
+      },
+      {
+        "pattern": "\\b(?:query|execute|raw)(?:\\s*\\.\\s*(?:query|execute|raw))?\\s*\\(\\s*(?:req\\.(?:query|params|body)(?:\\.[a-zA-Z_$][a-zA-Z0-9_$]*)?)\\s*\\)",
+        "severity": "HIGH",
+        "title": "SQL Query with direct user input",
+        "description": "Detects SQL query methods (like `query`, `execute`, `raw`) that directly use values from `req.query`, `req.params`, or `req.body` as the SQL string without apparent sanitization or parameterization. This poses a high risk of SQL injection."
+      }
+    ],
+    "xss_vulnerabilities": [
+      {
+        "pattern": "\\b(?:[a-zA-Z_$][a-zA-Z0-9_$]*)\\.(?:innerHTML|outerHTML)\\s*=\\s*(?!['\"`])(?:[a-zA-Z_$][a-zA-Z0-9_$]*)(?:\\s*[;,\\)\\]\\+\\-]|\\s*$)",
+        "severity": "HIGH",
+        "title": "DOM XSS via Variable Assignment to innerHTML / outerHTML",
+        "description": "Detects direct assignment of a variable's content to `innerHTML` or `outerHTML`. If the variable holds untrusted user input without proper sanitization, this can lead to DOM-based XSS."
+      },
+      {
+        "pattern": "\\bdocument\\.write(?:ln)?\\s*\\(\\s*(?!['\"`](?:[^'\"\\\\]|\\\\.)*['\"`])\\s*\\b(?:[a-zA-Z_$][a-zA-Z0-9_$]*)\\b(?:[^)]*\\)|)\\s*",
+        "severity": "HIGH",
+        "title": "DOM XSS via document.write() with Variable",
+        "description": "Detects calls to `document.write()` or `document.writeln()` where a variable (potentially containing untrusted input) is passed as an argument. If the variable is not properly sanitized, it can lead to DOM-based XSS."
+      },
+      {
+        "pattern": "\\b(?:eval|new\\s+Function)\\s*\\(|(?:\\bsetTimeout|\\bsetInterval)\\s*\\(\\s*(?!function(?:\\s*\\(.*?\\))?\\{|(?:\\s*\\(.*?\\)\\s*=>)|[a-zA-Z_$][a-zA-Z0-9_$]*\\s*=>)([a-zA-Z_$][a-zA-Z0-9_$]*)\\b(?:[^)]*\\)|)\\s*,",
+        "severity": "CRITICAL",
+        "title": "Code Execution with Dynamic Input",
+        "description": "Detects dangerous functions like `eval()` and `new Function()`, which execute arbitrary code. Also detects `setTimeout()` and `setInterval()` when their first argument is a variable, which could hold unsanitized user input leading to arbitrary code execution."
+      },
+      {
+        "pattern": "\\b(?:[a-zA-Z_$][a-zA-Z0-9_$]*)\\.(?:src|href)\\s*=\\s*(?:location\\.(?:hash|search)|document\\.cookie|decodeURIComponent\\s*\\([^)]*\\)|URLSearchParams\\s*\\(.*?\\)|\\b(?:localStorage|sessionStorage)\\.getItem\\s*\\([^)]*\\)|window\\.name)",
+        "severity": "HIGH",
+        "title": "Dynamic URL Assignment from Untrusted Input",
+        "description": "Detects assignment of untrusted user input from sources like `location.hash`, `location.search`, `document.cookie`, or web storage to `src` or `href` attributes. This can lead to XSS if `src` is used for dynamic script loading or `href` for `javascript:` URIs without proper URL sanitization."
+      }
+    ],
+    "command_injection": [
+      {
+        "pattern": "child_process\\.(?:exec|execSync)\\s*\\(\\s*`[^`]*?\\${[^}]+?}[^`]*?`",
+        "severity": "CRITICAL",
+        "title": "child_process.exec/execSync with Template Literal Injection",
+        "description": "Detects usage of `child_process.exec` or `child_process.execSync` where the command argument is a template literal (`...`) that includes an interpolated expression (`${...}`). This pattern is a strong indicator of potential command injection if the interpolated value comes from user input."
+      },
+      {
+        "pattern": "child_process\\.(?:exec|execSync)\\s*\\(\\s*(?:['\"](?:\\\\.|[^\\\\'\\\"])*['\"]|[a-zA-Z_$][a-zA-Z0-9_$]*)\\s*\\+\\s*(?:['\"](?:\\\\.|[^\\\\'\\\"])*['\"]|[a-zA-Z_$][a-zA-Z0-9_$]*)(?:\\s*\\+\\s*(?:['\"](?:\\\\.|[^\\\\'\\\"])*['\"]|[a-zA-Z_$][a-zA-Z0-9_$]*))*",
+        "severity": "CRITICAL",
+        "title": "child_process.exec/execSync with String Concatenation Injection",
+        "description": "Detects usage of `child_process.exec` or `child_process.execSync` where the command argument is built using string concatenation (`+` operator) with at least one non-literal part (e.g., a variable). This pattern indicates dynamic command construction that could lead to command injection if any concatenated part is user-controlled."
+      },
+      {
+        "pattern": "child_process\\.(?:exec|execSync)\\s*\\(\\s*[a-zA-Z_$][a-zA-Z0-9_$]*\\s*(?:,\\s*\\{[^}]*?\\})?\\s*\\)",
+        "severity": "CRITICAL",
+        "title": "child_process.exec/execSync with Bare Variable Argument",
+        "description": "Detects usage of `child_process.exec` or `child_process.execSync` where the command argument is a bare JavaScript variable. This is a strong indicator of potential command injection if the variable's value is derived from user input without proper sanitization."
+      },
+      {
+        "pattern": "child_process\\.spawn\\s*\\(\\s*['\"](?:sh|bash)['\"]\\s*,\\s*\\[(?:[^\\]]*?,)?\\s*['\"]-c['\"]\\s*,\\s*`[^`]*?\\${[^}]+?}[^`]*?`",
+        "severity": "HIGH",
+        "title": "child_process.spawn with `sh -c` and Template Literal Injection",
+        "description": "Detects usage of `child_process.spawn` with `sh` or `bash` and the `-c` flag, where the command executed by `sh -c` is a template literal containing an interpolated expression (`${...}`). This indicates a strong potential for command injection."
+      },
+      {
+        "pattern": "child_process\\.spawn\\s*\\(\\s*['\"](?:sh|bash)['\"]\\s*,\\s*\\[(?:[^\\]]*?,)?\\s*['\"]-c['\"]\\s*,\\s*(?:['\"](?:\\\\.|[^\\\\'\\\"])*['\"]|[a-zA-Z_$][a-zA-Z0-9_$]*)\\s*\\+\\s*(?:['\"](?:\\\\.|[^\\\\'\\\"])*['\"]|[a-zA-Z_$][a-zA-Z0-9_$]*)(?:\\s*\\+\\s*(?:['\"](?:\\\\.|[^\\\\'\\\"])*['\"]|[a-zA-Z_$][a-zA-Z0-9_$]*))*",
+        "severity": "HIGH",
+        "title": "child_process.spawn with `sh -c` and String Concatenation Injection",
+        "description": "Detects usage of `child_process.spawn` with `sh` or `bash` and the `-c` flag, where the command executed by `sh -c` is constructed using string concatenation (`+` operator). This indicates a dynamic command construction that might include user-controlled input."
+      }
+    ],
+    "path_traversal": [
+      {
+        "pattern": "fs\\.(?:read|write|access|unlink|rename|mkdir|rmdir|createRead|createWrite|lstat|stat|readdir|watch(?:File)?)(?:Sync)?\\s*\\(([^,)]*?(?:req\\.(?:query|params|body|headers)|process\\.argv|decodeURIComponent)[^,)]*?)\\)",
+        "severity": "CRITICAL",
+        "title": "Direct File System Access with Untrusted Input",
+        "description": "Detects direct usage of untrusted user input (from request parameters, query, body, headers, or process arguments) in Node.js 'fs' module functions without proper sanitization, potentially leading to path traversal."
+      },
+      {
+        "pattern": "require\\s*\\(([^)]*?(?:req\\.(?:query|params|body|headers)|process\\.argv|decodeURIComponent)[^)]*?)\\)",
+        "severity": "CRITICAL",
+        "title": "Dynamic Module Loading with Untrusted Input",
+        "description": "Detects dynamic 'require()' calls where the module path is constructed using untrusted user input, allowing attackers to load arbitrary files or modules from the file system."
+      },
+      {
+        "pattern": "child_process\\.(?:exec|spawn|fork)\\s*\\(([^,)]*?(?:req\\.(?:query|params|body|headers)|process\\.argv|decodeURIComponent)[^,)]*?)\\)",
+        "severity": "CRITICAL",
+        "title": "Child Process Execution with Untrusted Input",
+        "description": "Detects execution of child processes where the command or script path is directly influenced by untrusted user input, potentially leading to command injection and subsequent path traversal or arbitrary code execution."
+      },
+      {
+        "pattern": "path\\.(?:join|resolve)\\s*\\(\\s*(?:req\\.(?:query|params|body|headers)|process\\.argv|decodeURIComponent)\\b",
+        "severity": "HIGH",
+        "title": "User-Controlled Base Path in path.join/resolve",
+        "description": "Detects 'path.join' or 'path.resolve' calls where the initial argument (representing the base path) is derived directly from untrusted user input, which can allow attackers to control the root directory for path resolution, bypassing intended restrictions."
+      }
+    ],
+    "insecure_crypto": [
+      {
+        "pattern": "crypto\\.createHash\\(['\"](?:md5|sha1)['\"]\\)|require\\(['\"]md5['\"]\\)|require\\(['\"]sha1['\"]\\)|import\\s+.*from\\s+['\"](?:md5|sha1)['\"]|MD5\\([^)]*\\)|SHA1\\([^)]*\\)",
+        "severity": "HIGH",
+        "title": "Use of MD5 or SHA1 for cryptographic hashing",
+        "description": "Detects the use of MD5 or SHA1 cryptographic hash functions, which are known to be insecure and vulnerable to collision attacks. These are unsuitable for security-sensitive applications like password hashing, digital signatures, or data integrity verification."
+      },
+      {
+        "pattern": "(?:const|let|var)\\s+(?:(?:API|AUTH|SECRET|PRIVATE|ENCRYPTION|DECRYPTION|SIGNING|VERIFICATION)_?KEY|_?SECRET|_?PASSWORD|_?TOKEN)\\s*=\\s*['\"]([^'\"]+)['\"]",
+        "severity": "CRITICAL",
+        "title": "Hardcoded cryptographic secrets or API keys",
+        "description": "Detects the presence of hardcoded cryptographic keys, secrets, passwords, or API tokens directly within the source code. Hardcoding sensitive information is a critical security vulnerability as it allows attackers to easily discover and compromise these secrets, leading to unauthorized access or data breaches."
+      },
+      {
+        "pattern": "crypto\\.pbkdf2Sync?\\((?:[^,]+,){3}\\s*(?:\\d{1,3}|[1-9]\\d{3})\\s*,",
+        "severity": "HIGH",
+        "title": "PBKDF2 used with insufficient iterations",
+        "description": "Detects the use of PBKDF2 with an iteration count that is too low (e.g., less than 10,000). A low iteration count makes the function vulnerable to brute-force attacks, as it reduces the computational cost for an attacker to test many passwords, compromising the security of hashed passwords."
+      },
+      {
+        "pattern": "crypto\\.(?:createCipheriv|createDecipheriv)\\(['\"](?:aes|des|3des|blowfish)-\\d{2,3}-ecb['\"]",
+        "severity": "CRITICAL",
+        "title": "Use of Electronic Codebook (ECB) mode",
+        "description": "Detects the use of the Electronic Codebook (ECB) mode for symmetric encryption. ECB mode is insecure because it encrypts identical plaintext blocks into identical ciphertext blocks, revealing patterns in the data and making it vulnerable to various attacks. It should never be used for encrypting data longer than a single block."
+      }
+    ],
+    "prototype_pollution": [
+      {
+        "pattern": "\\b(?:[a-zA-Z_$][\\w$]*|this)(?:\\s*\\[\\s*['\"`]?__proto__['\"`]?\\s*\\]|\\s*\\.__proto__)\\s*=",
+        "severity": "CRITICAL",
+        "title": "Direct '__proto__' Property Assignment",
+        "description": "Detects direct assignment to the '__proto__' property of an object. This is a primary vector for prototype pollution when the object or assigned value is controlled by an attacker."
+      },
+      {
+        "pattern": "\\b(?:[a-zA-Z_$][\\w$]*|this)(?:\\s*\\[\\s*['\"`]?constructor['\"`]?\\s*\\]|\\s*\\.constructor)\\s*(?:\\s*\\[\\s*['\"`]?prototype['\"`]?\\s*\\]|\\s*\\.prototype)\\s*=",
+        "severity": "HIGH",
+        "title": "'constructor.prototype' Property Assignment",
+        "description": "Detects assignment to the 'prototype' property via the 'constructor' property (e.g., obj.constructor.prototype = value). This is another significant vector for prototype pollution."
+      },
+      {
+        "pattern": "\\bObject\\.prototype\\s*(?:\\s*\\[\\s*['\"`]?\\w+['\"`]?\\s*\\]|\\s*\\.\\w+)\\s*=",
+        "severity": "CRITICAL",
+        "title": "Direct Object.prototype Modification",
+        "description": "Detects direct assignment to properties of 'Object.prototype' (e.g., Object.prototype.foo = 'bar'). This explicitly modifies the global object prototype and is a severe form of pollution."
+      },
+      {
+        "pattern": "\\b(?:_\\.(?:merge|extend)|\\$\\.(?:merge|extend)|jQuery\\.extend\\s*\\(\\s*true)",
+        "severity": "HIGH",
+        "title": "Vulnerable Deep Merge Function Usage",
+        "description": "Detects calls to common deep merging functions (e.g., Lodash's _.merge, jQuery's $.extend(true, ...)) that are frequently misused, leading to prototype pollution when merging untrusted input without proper sanitization."
+      }
+    ],
+    "hardcoded_secrets": [
+      {
+        "pattern": "(API_KEY|SECRET_KEY|ACCESS_KEY|AUTH_TOKEN|API_SECRET|CLIENT_SECRET|JWT_SECRET)[ ]*=[ ]*['\"]([A-Za-z0-9\\-_+=/]{16,128})['\"]",
+        "severity": "CRITICAL",
+        "title": "Hardcoded Generic API/Auth Secret",
+        "description": "Detects assignment of common API keys, secret keys, access tokens, client secrets, or JWT secrets."
+      }
+    ],
+    "ssrf": [
+      {
+        "pattern": "(?:axios|http|https|fetch|node-fetch)\\.(?:get|post|put|delete|request)\\s*\\(\\s*(?!['\"`])([^,)]+)",
+        "severity": "HIGH",
+        "title": "Possible SSRF in HTTP Client",
+        "description": "Detects HTTP requests where the URL is not a literal string, suggesting potential Server-Side Request Forgery if user input controls the URL."
+      }
+    ]
+  },
+  "python": {
+    "hardcoded_secrets": [
+      {
+        "pattern": "(API_KEY|SECRET_KEY|ACCESS_KEY|AUTH_TOKEN|API_SECRET|CLIENT_SECRET|JWT_SECRET)[ ]*=[ ]*[\"']([A-Za-z0-9\\-_+=/]{16,128})[\"']",
+        "severity": "CRITICAL",
+        "title": "Hardcoded Generic API/Auth Secret",
+        "description": "Detects assignment of common API keys, secret keys, access tokens, client secrets, or JWT secrets."
+      },
+      {
+        "pattern": "AWS_SECRET_ACCESS_KEY[ ]*=[ ]*[\"']([A-Za-z0-9\\/+=]{40})[\"']",
+        "severity": "CRITICAL",
+        "title": "Hardcoded AWS Secret Access Key",
+        "description": "Detects hardcoded AWS_SECRET_ACCESS_KEY, which grants programmatic access to AWS resources."
+      },
+      {
+        "pattern": "(DATABASE_URL|SQLALCHEMY_DATABASE_URI)[ ]*=[ ]*[\"']([a-z]+:\\/\\/[^\\s\"'<>]+)[\"']",
+        "severity": "HIGH",
+        "title": "Hardcoded Database Connection String",
+        "description": "Detects hardcoded database connection URLs which typically contain credentials like username and password."
+      },
+      {
+        "pattern": "PRIVATE_KEY[ ]*=[ ]*[\"']([A-Za-z0-9+\\/=]{60,})[\"']",
+        "severity": "CRITICAL",
+        "title": "Hardcoded Private Key",
+        "description": "Detects assignment of a long base64-encoded string to a variable named 'PRIVATE_KEY', which might represent a cryptographic private key."
+      },
+      {
+        "pattern": "([A-Z_]*_PASSWORD|[A-Z_]*_PASS)[ ]*=[ ]*[\"']([^\"'\\n]{8,64})[\"']",
+        "severity": "HIGH",
+        "title": "Hardcoded Password",
+        "description": "Detects hardcoded passwords assigned to variables ending with '_PASSWORD' or '_PASS'."
+      }
+    ],
+    "sql_injection": [
+      {
+        "pattern": "(?i)(?:cursor|conn|session|db)\\.(?:execute|executemany|query|raw)\\s*\\(\\s*f['\"](?:[^'\"]*?(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN|UNION|ALTER|CREATE|DROP|TRUNCATE)[^'\"]*)?\\s*\\{[a-zA-Z_]\\w*\\}\\s*(?:[^'\"]*?(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN|UNION|ALTER|CREATE|DROP|TRUNCATE)[^'\"]*)?['\"]",
+        "severity": "CRITICAL",
+        "title": "F-string used in SQL query",
+        "description": "Detects SQL queries constructed using f-strings with interpolated variables, which can lead to SQL injection if variables are user-controlled."
+      },
+      {
+        "pattern": "(?i)(?:cursor|conn|session|db)\\.(?:execute|executemany|query|raw)\\s*\\(\\s*(['\"])(?:(?!\\1).)*?(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN|UNION|ALTER|CREATE|DROP|TRUNCATE)(?:(?!\\1).)*?(?:\\{\\w*\\}|\\{\\d+\\})(?:(?!\\1).)*?\\1\\.format\\s*\\(",
+        "severity": "CRITICAL",
+        "title": ".format() used in SQL query",
+        "description": "Detects SQL queries constructed using the .format() method with dynamic values, which can lead to SQL injection if values are user-controlled."
+      },
+      {
+        "pattern": "(?i)(?:cursor|conn|session|db)\\.(?:execute|executemany|query|raw)\\s*\\(\\s*(['\"])(?:(?!\\1).)*?(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN|UNION|ALTER|CREATE|DROP|TRUNCATE)(?:(?!\\1).)*?\\%[sdeifo][^'\"]*?\\1\\s*\\%",
+        "severity": "CRITICAL",
+        "title": "Percent-style formatting in SQL query",
+        "description": "Detects SQL queries constructed using percent-style string formatting (%s, %d, etc.) with dynamic values, which can lead to SQL injection if values are user-controlled."
+      }
+    ],
+    "command_injection": [
+      {
+        "pattern": "os\\.system\\s*\\(\\s*(?!['\"](?:(?!(?<!\\\\)['\"]).)*?['\"])[^)]+\\)",
+        "severity": "CRITICAL",
+        "title": "os.system() with dynamic command",
+        "description": "Detects 'os.system()' calls where the command argument is not a simple string literal (e.g., includes variables, f-strings, or string concatenation), suggesting potential command injection if user input is involved."
+      },
+      {
+        "pattern": "subprocess\\.(?:run|call|check_output|Popen)\\s*\\(\\s*(?!['\"](?:(?!(?<!\\\\)['\"]).)*?['\"])[^,]+,\\s*.*?shell=True(?:[^,)]|$|\\s*,\\s*[^)]+|\\s*\\))",
+        "severity": "CRITICAL",
+        "title": "subprocess with shell=True and dynamic command",
+        "description": "Detects 'subprocess' calls (e.g., 'run', 'call', 'Popen') where 'shell=True' is used and the command argument is not a simple string literal, indicating a high risk of command injection if user input can control the command string."
+      },
+      {
+        "pattern": "os\\.popen\\s*\\(\\s*(?!['\"](?:(?!(?<!\\\\)['\"]).)*?['\"])[^)]+\\)",
+        "severity": "CRITICAL",
+        "title": "os.popen() with dynamic command",
+        "description": "Detects 'os.popen()' calls where the command argument is not a simple string literal (e.g., includes variables, f-strings, or string concatenation), suggesting potential command injection if user input is involved."
+      }
+    ],
+    "insecure_deserialization": [
+      {
+        "pattern": "pickle\\.(load|loads)\\(",
+        "severity": "CRITICAL",
+        "title": "Insecure Pickle Deserialization",
+        "description": "Detects usage of `pickle.load` or `pickle.loads`, which can lead to arbitrary code execution when deserializing untrusted data."
+      },
+      {
+        "pattern": "yaml\\.(load|unsafe_load)\\(",
+        "severity": "CRITICAL",
+        "title": "Insecure YAML Deserialization",
+        "description": "Detects usage of `yaml.load` (especially without a safe loader like `SafeLoader` or `FullLoader`) or explicit `yaml.unsafe_load`, which can execute arbitrary code from untrusted YAML data."
+      },
+      {
+        "pattern": "jsonpickle\\.decode\\(",
+        "severity": "CRITICAL",
+        "title": "Insecure jsonpickle Deserialization",
+        "description": "Detects usage of `jsonpickle.decode`, which can lead to arbitrary code execution when deserializing untrusted data."
+      },
+      {
+        "pattern": "marshal\\.(load|loads)\\(",
+        "severity": "HIGH",
+        "title": "Insecure Marshal Deserialization",
+        "description": "Detects usage of `marshal.load` or `marshal.loads`, which can lead to arbitrary code execution when deserializing untrusted data."
+      },
+      {
+        "pattern": "dill\\.(load|loads)\\(",
+        "severity": "CRITICAL",
+        "title": "Insecure Dill Deserialization",
+        "description": "Detects usage of `dill.load` or `dill.loads`, which can execute arbitrary code when deserializing untrusted data."
+      }
+    ],
+    "path_traversal": [
+      {
+        "pattern": "(?:open|io\\.open)\\s*\\(\\s*(?!['\"])([^,)]+?)\\s*(?:,|\\))",
+        "severity": "CRITICAL",
+        "title": "Unsanitized Input in File Opening",
+        "description": "Detects direct use of non-literal (potentially untrusted) input in `open()` or `io.open()` calls, which can lead to path traversal if the input is not properly validated, allowing access to arbitrary files."
+      },
+      {
+        "pattern": "os\\.(?:remove|unlink|rmdir|makedirs)\\s*\\(\\s*(?!['\"])([^,)]+?)\\s*(?:,|\\))",
+        "severity": "CRITICAL",
+        "title": "Unsanitized Input in File/Directory Deletion/Creation",
+        "description": "Detects direct use of non-literal (potentially untrusted) input as the path in sensitive `os` file system operations (`os.remove`, `os.unlink`, `os.rmdir`, `os.makedirs`), allowing attackers to delete, create, or traverse arbitrary files/directories."
+      },
+      {
+        "pattern": "os\\.rename\\s*\\(\\s*(?!['\"])([^,)]+?)\\s*,|os\\.rename\\s*\\([^,)]+?,\\s*(?!['\"])([^,)]+?)\\s*(?:,|\\))",
+        "severity": "CRITICAL",
+        "title": "Unsanitized Input in File Renaming (Source or Destination)",
+        "description": "Detects `os.rename()` calls where either the source or destination path is a non-literal (potentially untrusted) input. This can lead to path traversal, allowing attackers to move or rename arbitrary files/directories."
+      },
+      {
+        "pattern": "shutil\\.(?:copy|move|rmtree|copyfile|copytree)\\s*\\(\\s*(?!['\"])([^,)]+?)\\s*(?:,|\\))",
+        "severity": "CRITICAL",
+        "title": "Unsanitized Input in Shutil File Operations",
+        "description": "Detects direct use of non-literal (potentially untrusted) input as the primary path argument in sensitive `shutil` operations (`shutil.copy`, `shutil.move`, `shutil.rmtree`, `shutil.copyfile`, `shutil.copytree`). This can lead to path traversal, allowing attackers to copy, move, or delete arbitrary files/directories."
+      }
+    ],
+    "xxe_vulnerabilities": [
+      {
+        "pattern": "lxml\\.etree\\.XMLParser\\s*\\(\\s*(?:[^,]*?,\\s*)*?(?:resolve_entities|load_dtd)\\s*=\\s*True(?:,\\s*[^,]*?)*\\)",
+        "severity": "CRITICAL",
+        "title": "`lxml` XMLParser with DTD/Entity Resolution Enabled",
+        "description": "Detects explicit enablement of DTD loading or external entity resolution via `resolve_entities=True` or `load_dtd=True` in `lxml.etree.XMLParser`. This configuration makes the application vulnerable to XXE if untrusted XML is processed."
+      },
+      {
+        "pattern": "\\.setFeature\\((?:xml\\.sax\\.handler\\.)?feature_external_(?:general|parameter)_entities\\s*,\\s*True\\)",
+        "severity": "CRITICAL",
+        "title": "`xml.sax` External Entity Feature Enabled",
+        "description": "Detects explicit enablement of external general or parameter entities in `xml.sax` parsers. Setting these features to `True` leads to XXE vulnerability when parsing untrusted XML."
+      },
+      {
+        "pattern": "lxml\\.etree\\.(?:parse|fromstring)\\s*\\(\\s*[^)]*?\\s*,\\s*(?:resolve_entities|load_dtd)\\s*=\\s*True(?:,\\s*[^)]*?)*\\)",
+        "severity": "CRITICAL",
+        "title": "`lxml` Parsing with Direct DTD/Entity Resolution Enabled",
+        "description": "Detects direct calls to `lxml.etree.parse` or `lxml.etree.fromstring` with `resolve_entities=True` or `load_dtd=True`. This explicitly enables DTD loading or external entity resolution and makes the application vulnerable to XXE if untrusted XML is processed."
+      },
+      {
+        "pattern": "xml\\.(?:dom\\.minidom|dom\\.pulldom)\\.(?:parse|parseString)",
+        "severity": "HIGH",
+        "title": "Potentially Insecure `xml.dom.minidom` or `xml.dom.pulldom` Usage",
+        "description": "Detects the use of `xml.dom.minidom.parse`, `xml.dom.minidom.parseString`, `xml.dom.pulldom.parse`, or `xml.dom.pulldom.parseString`. These modules have historically been more prone to XXE vulnerabilities, especially in older Python versions, and might still pose a risk without explicit security hardening measures."
+      }
+    ],
+    "ldap_injection": [
+      {
+        "pattern": "(?:f['\"].*?|['\"].*?\\.format\\().*?\\b(?:uid|cn|sAMAccountName|mail|objectClass)\\s*=\\s*(?:\\{[^}]+\\}|%[sd])",
+        "severity": "CRITICAL",
+        "title": "Unsanitized input in LDAP filter (f-string/format)",
+        "description": "Detects f-strings, str.format(), or percent-formatting used to construct LDAP filter strings with interpolated variables, which can lead to LDAP injection if the variables are user-controlled and not properly escaped."
+      },
+      {
+        "pattern": "['\"]\\(?.*?\\b(?:uid|cn|sAMAccountName|mail|objectClass)\\s*=\\s*['\"]\\s*\\+\\s*[a-zA-Z_][a-zA-Z0-9_]*\\s*\\+\\s*['\"].*?\\)",
+        "severity": "CRITICAL",
+        "title": "Unsanitized input in LDAP filter (string concatenation)",
+        "description": "Detects LDAP filter strings constructed using string concatenation with a variable, which can lead to LDAP injection if the variable is user-controlled and not properly escaped."
+      },
+      {
+        "pattern": "ldap\\.(?:search_s|search_st|search_ext_s|search_ext)\\s*\\([^,]*?,\\s*[^,]*?,\\s*(?:filter\\s*=\\s*)?([a-zA-Z_][a-zA-Z0-9_]*)(?=[,)])",
+        "severity": "CRITICAL",
+        "title": "Raw variable passed as LDAP filter",
+        "description": "Detects LDAP search functions where a raw variable is passed directly as the filter argument, potentially allowing LDAP injection if the variable contains unescaped user-controlled input. This pattern relies on the static analysis tool to identify if the variable is sourced from untrusted input."
+      }
+    ],
+    "template_injection": [
+      {
+        "pattern": "\\b(?:flask\\.render_template_string|jinja2\\.Template|[a-zA-Z_][a-zA-Z0-9_]*\\.jinja_env\\.from_string)\\s*\\(",
+        "severity": "CRITICAL",
+        "title": "Jinja2/Flask Direct Template String Rendering",
+        "description": "Detects direct rendering of a template string using Jinja2 or Flask's render_template_string, or app.jinja_env.from_string, which can lead to template injection if the template string is user-controlled."
+      },
+      {
+        "pattern": "\\bmako\\.template\\.Template\\s*\\(",
+        "severity": "HIGH",
+        "title": "Mako Template String Rendering",
+        "description": "Detects the use of mako.template.Template constructor to create a template from a string, which can lead to template injection if the template string is user-controlled."
+      },
+      {
+        "pattern": "\\bdjango\\.template\\.Template\\s*\\(",
+        "severity": "HIGH",
+        "title": "Django Template String Rendering",
+        "description": "Detects the use of django.template.Template constructor to create a template from a string, which can lead to template injection if the template string is user-controlled."
+      },
+      {
+        "pattern": "\\b(?:chameleon\\.PageTemplate|zpt\\.PageTemplate)\\s*\\(",
+        "severity": "HIGH",
+        "title": "Chameleon/ZPT Template String Rendering",
+        "description": "Detects the use of Chameleon (or older ZPT) PageTemplate constructor to create a template from a string, which can lead to template injection if the template string is user-controlled."
+      },
+      {
+        "pattern": "\\btornado\\.template\\.Template\\s*\\(",
+        "severity": "HIGH",
+        "title": "Tornado Template String Rendering",
+        "description": "Detects the use of tornado.template.Template constructor to create a template from a string, which can lead to template injection if the template string is user-controlled."
+      }
+    ],
+    "ssrf": [
+      {
+        "pattern": "(?:requests|urllib\\.request)\\.(?:get|post|put|delete|urlopen|request)\\s*\\(\\s*(?!['\"])([^,)]+)",
+        "severity": "HIGH",
+        "title": "Possible SSRF in HTTP Client",
+        "description": "Detects HTTP requests where the URL is not a literal string, suggesting potential Server-Side Request Forgery if user input controls the URL."
+      }
+    ],
+    "jwt_vulnerabilities": [
+      {
+        "pattern": "jwt\\.decode\\s*\\(.*?,\\s*verify\\s*=\\s*False",
+        "severity": "CRITICAL",
+        "title": "JWT Signature Verification Disabled",
+        "description": "Detects JWT decoding with signature verification explicitly disabled."
+      }
+    ]
+  },
+  "java": {
+    "hardcoded_secrets": [
+      {
+        "pattern": "AKIA[0-9A-Z]{16}",
+        "severity": "CRITICAL",
+        "title": "Hardcoded AWS Access Key ID",
+        "description": "Detects the presence of an AWS Access Key ID (e.g., AKIA...) directly in source code."
+      },
+      {
+        "pattern": "(?i)(aws_secret_access_key|awsSecretKey)\\s*=\\s*[\\\"']([A-Za-z0-9+/]{40})[\\\"']",
+        "severity": "CRITICAL",
+        "title": "Hardcoded AWS Secret Access Key",
+        "description": "Detects assignment of a typical AWS Secret Access Key (40 character base64 string) to a variable with a sensitive name."
+      },
+      {
+        "pattern": "(?i)(secret|password|api_key|auth_token|client_secret|db_password|jwt_secret)[a-z0-9_]*\\s*=\\s*[\\\"']([A-Za-z0-9!@#$%^&*()_+\\-=\\[\\]{};':\\\"\\\\|,.<>\\/?`~]{15,})[\\\"']",
+        "severity": "HIGH",
+        "title": "Hardcoded Generic Sensitive String",
+        "description": "Identifies common variable names associated with secrets (e.g., `password`, `api_key`, `secret`) assigned to string literals of significant length (15+ characters)."
+      },
+      {
+        "pattern": "\\\"jdbc:[^\\\"]*(?:password|passwd)=([^;\\\"']{4,})[^\\\"]*\\\"",
+        "severity": "HIGH",
+        "title": "Hardcoded Database Password in JDBC URL",
+        "description": "Detects database connection URLs (JDBC) containing 'password=' or 'passwd=' followed by a value directly in the source code."
+      },
+      {
+        "pattern": "\\\"\\s*-----BEGIN (?:RSA|DSA|EC|PGP)? PRIVATE KEY-----\\\"",
+        "severity": "CRITICAL",
+        "title": "Hardcoded Private Key Material",
+        "description": "Detects the 'BEGIN PRIVATE KEY' marker, indicating that a cryptographic private key might be hardcoded in a string literal."
+      }
+    ],
+    "sql_injection": [
+      {
+        "pattern": "(?i)String\\s+\\w+\\s*=\\s*\\\"\\s*(?:SELECT|UPDATE|DELETE|INSERT)[^\\\"]*\\\"\\s*\\+\\s*\\w+",
+        "severity": "CRITICAL",
+        "title": "SQL String Concatenation",
+        "description": "Detects dynamic SQL query construction using string concatenation, which is highly vulnerable to SQL injection."
+      },
+      {
+        "pattern": "\\.(?:executeQuery|executeUpdate|execute)\\s*\\(\\s*\\w+\\s*\\+\\s*\\w+\\s*\\)",
+        "severity": "CRITICAL",
+        "title": "SQL Executed with Concatenated String",
+        "description": "Detects executing SQL queries that incorporate string concatenation."
+      }
+    ],
+    "command_injection": [
+      {
+        "pattern": "Runtime\\.getRuntime\\(\\)\\.exec\\s*\\(\\s*(?!\\\")[^)]+\\)",
+        "severity": "CRITICAL",
+        "title": "Runtime.exec with Dynamic Command",
+        "description": "Detects `Runtime.getRuntime().exec` calls where the command argument is not a literal string, posing a command injection risk."
+      },
+      {
+        "pattern": "new\\s+ProcessBuilder\\s*\\(\\s*(?!\\\")[^)]+\\)",
+        "severity": "CRITICAL",
+        "title": "ProcessBuilder with Dynamic Command",
+        "description": "Detects `ProcessBuilder` initialization where the command arguments are not literal strings, posing a command injection risk."
+      }
+    ],
+    "path_traversal": [
+      {
+        "pattern": "new\\s+File\\s*\\(\\s*(?!\\\")[^,)]+\\s*\\)",
+        "severity": "HIGH",
+        "title": "File Object with Dynamic Path",
+        "description": "Detects `File` object creation with a dynamic path which could lead to path traversal vulnerabilities if untrusted input is used."
+      }
+    ]
+  },
+  "_metadata": {
+    "last_updated": "2026-02-25T14:59:01.943125",
+    "total_patterns": 70,
+    "version": "1.1"
+  }
+}
